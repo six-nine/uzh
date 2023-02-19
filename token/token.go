@@ -46,4 +46,11 @@ const (
 	L_OR_EQ   TokenType = "<="
 	G_OR_EG   TokenType = ">="
 	NOT_EQUAL TokenType = "!="
+
+	LPAREN   TokenType = "("
+	RPAREN   TokenType = ")"
+	LBRACE   TokenType = "{"
+	RBRACE   TokenType = "}"
+	LBRACKET TokenType = "["
+	RBRACKET TokenType = "]"
 )

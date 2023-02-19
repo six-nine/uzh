@@ -1,0 +1,11 @@
+int sum(int a, int b) {
+    return a + b;
+}
+
+proc main() {
+    int a = 5;
+    int b = 10;
+    int c = a + b;
+    int result = sum(a, b);
+    bool equal = c == result;
+}

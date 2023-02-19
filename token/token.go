@@ -40,12 +40,12 @@ const (
 	COMMA     TokenType = ","
 	SEMICOLON TokenType = ";"
 
-	EQUAL     TokenType = "=="
 	LT        TokenType = "<"
 	GT        TokenType = ">"
 	L_OR_EQ   TokenType = "<="
 	G_OR_EG   TokenType = ">="
 	NOT_EQUAL TokenType = "!="
+	EQUAL     TokenType = "=="
 
 	LPAREN   TokenType = "("
 	RPAREN   TokenType = ")"
@@ -54,3 +54,41 @@ const (
 	LBRACKET TokenType = "["
 	RBRACKET TokenType = "]"
 )
+
+var Keywords = map[string]TokenType{
+	"int":    INT,
+	"float":  FLOAT,
+	"char":   CHAR,
+	"string": STRING,
+	"bool":   BOOL,
+	"proc":   PROCEDURE,
+	"main":   MAIN,
+	"if":     IF,
+	"else":   ELSE,
+	"return": RETURN,
+}
+
+var OneSymbolTokens = map[string]TokenType{
+	"=": ASSIGN,
+	"+": PLUS,
+	"-": MINUS,
+	"*": ASTERISK,
+	"/": SLASH,
+	",": COMMA,
+	";": SEMICOLON,
+	"<": LT,
+	">": GT,
+	"(": LPAREN,
+	")": RPAREN,
+	"{": LBRACE,
+	"}": RBRACE,
+	"[": LBRACKET,
+	"]": RBRACKET,
+}
+
+var TwoSymbolTokens = map[string]TokenType{
+	"<=": L_OR_EQ,
+	">=": G_OR_EG,
+	"==": EQUAL,
+	"!=": NOT_EQUAL,
+}

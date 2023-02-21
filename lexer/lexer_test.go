@@ -21,7 +21,11 @@ func TestTokenizing(t *testing.T) {
 
 	l := New()
 
-	tokens := l.Tokenize(input)
+	for i := 0; i < len(input); i++ {
+		l.AddChar(input[i])
+	}
+
+	tokens := l.ExtractTokens()
 
 	for i, tok := range tokens {
 		fmt.Println(tok.Type, tok.Literal)

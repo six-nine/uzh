@@ -117,12 +117,12 @@ func (lexer *Lexer) AddChar(char byte) {
 func (lexer *Lexer) ExtractTokens() []token.Token {
 	if len(lexer.twoSymbolBuffer) == 1 {
 		lexer.twoSymbolBuffer += " "
-	}
-	err := lexer.tryOneSymbolToken()
-	if err != nil {
-		lexer.buffer += lexer.twoSymbolBuffer
-		lexer.twoSymbolBuffer = ""
-		lexer.resetBuffer()
+		err := lexer.tryOneSymbolToken()
+		if err != nil {
+			lexer.buffer += lexer.twoSymbolBuffer
+			lexer.twoSymbolBuffer = ""
+			lexer.resetBuffer()
+		}
 	}
 	tokens := lexer.tokens
 	lexer.tokens = lexer.tokens[:0]

@@ -2,20 +2,24 @@ package lexer
 
 import (
 	"errors"
-	"regexp"
-	"unicode"
 
 	"github.com/six-nine/uzh/token"
 )
 
-type Lexer struct {
-	buffer          string
-	twoSymbolBuffer string
-	tokens          []token.Token
+var ErrEOF = errors.New("End of file reached")
+
+type CodeSource interface {
+	GetChar() (byte, error) // should return char or error
 }
 
-func New() *Lexer {
-	l := Lexer{"", "", []token.Token{}}
+type Lexer struct {
+	currentChar byte
+	codeSource  *CodeSource
+}
+
+func New(codeSource *CodeSource) *Lexer {
+	l := Lexer{}
+	l.codeSource = codeSource
 	return &l
 }
 
@@ -23,108 +27,88 @@ func buildToken(tokType token.TokenType, literal string) token.Token {
 	return token.Token{Type: tokType, Literal: literal}
 }
 
-func (lexer *Lexer) resetBuffer() {
-	if len(lexer.buffer) == 0 {
-		return
-	}
+func isNumber(ch byte) bool {
+	return '0' <= ch && ch <= '9'
+}
 
-	tokType := token.IDENTIFIER
+func isLetterOrUnderscore(ch byte) bool {
+	return ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ch == '_'
+}
 
-	tokenType, ok := token.Keywords[lexer.buffer]
-	if ok {
-		tokType = tokenType
+func (lexer *Lexer) getIdentifierOrKeyword() token.Token {
+
+}
+
+func (lexer *Lexer) getIntOrFloatLiteral() token.Token {
+
+}
+
+func (lexer *Lexer) getStringLiteral() token.Token {
+
+}
+
+func (lexer *Lexer) getCharLiteral() token.Token {
+	literal := string(lexer.currentChar)
+	ch, err := lexer.codeSource.GetChar()
+	literal += string(ch)
+	if ch == '\\' {
+		// escape char
 	} else {
-		var isIntLiteral, _ = regexp.MatchString(`\b\d+\b`, lexer.buffer)
-		if isIntLiteral {
-			tokType = token.INT_LITERAL
-		}
-		var isFloatLiteral, _ = regexp.MatchString(`\b\d+\.\d+\b`, lexer.buffer)
-		if isFloatLiteral {
-			tokType = token.FLOAT_LITERAL
-		}
-		var isCharLiteral, _ = regexp.MatchString(`\b\'.\'\b`, lexer.buffer)
-		if isCharLiteral {
-			tokType = token.CHAR_LITERAL
-		}
-		var isStringLiteral, _ = regexp.MatchString(`\b\"*\"\b`, lexer.buffer)
-		if isStringLiteral {
-			tokType = token.STRING_LITERAL
-		}
-	}
 
-	lexer.tokens = append(
-		lexer.tokens,
-		buildToken(tokType, lexer.buffer),
-	)
-
-	lexer.buffer = ""
-}
-
-func (lexer *Lexer) tryOneSymbolToken() error {
-	oneSymbolToken, ok := token.OneSymbolTokens[lexer.twoSymbolBuffer[0:1]]
-	if ok {
-		lexer.resetBuffer()
-		lexer.tokens = append(lexer.tokens, buildToken(oneSymbolToken, string(lexer.twoSymbolBuffer[0])))
-		if unicode.IsSpace(rune(lexer.twoSymbolBuffer[1])) {
-			lexer.twoSymbolBuffer = ""
-		} else {
-			lexer.twoSymbolBuffer = string(lexer.twoSymbolBuffer[1])
-		}
-		return nil
-	} else {
-		return errors.New("Not a one symbol token")
 	}
 }
 
-func (lexer *Lexer) tryTwoSymbolToken() error {
-	twoSymbolToken, ok := token.TwoSymbolTokens[lexer.twoSymbolBuffer]
-	if ok {
-		lexer.resetBuffer()
-		lexer.tokens = append(lexer.tokens, buildToken(twoSymbolToken, lexer.twoSymbolBuffer))
-		lexer.twoSymbolBuffer = ""
-		return nil
-	} else {
-		return errors.New("Not a two symbol token")
+func (lexer *Lexer) getOneOrTwoSymbolOperator() token.Token {
+	first_ch := lexer.currentChar
+	lexer.currentChar = (*lexer.codeSource).GetChar()
+
+	twoSymbOp := string(first_ch) + string(lexer.currentChar)
+	tokType, isTwoSymbToken := token.TwoSymbolTokens[twoSymbOp]
+	if isTwoSymbToken {
+		lexer.currentChar = 0
+		return token.Token{Type: tokType, Literal: twoSymbOp}
 	}
+
+	oneSymbOp := string(first_ch)
+	tokType, isOneSymbToken := token.OneSymbolTokens[oneSymbOp]
+	if isOneSymbToken {
+		return token.Token{Type: tokType, Literal: oneSymbOp}
+	}
+
+	return token.Token{Type: token.ILLEGAL, Literal: ""}
 }
 
-func (lexer *Lexer) AddChar(char byte) {
-	cs := string(char)
-
-	lexer.twoSymbolBuffer += cs
-
-	if len(lexer.twoSymbolBuffer) == 2 {
-		err := lexer.tryTwoSymbolToken()
-		if err == nil {
-			return
-		}
-
-		err = lexer.tryOneSymbolToken()
-		if err == nil {
-			return
-		}
-
-		lexer.buffer += string(lexer.twoSymbolBuffer[0])
-		lexer.twoSymbolBuffer = string(lexer.twoSymbolBuffer[1])
-	}
-
-	if unicode.IsSpace(rune(char)) {
-		lexer.twoSymbolBuffer = ""
-		lexer.resetBuffer()
-	}
-}
-
-func (lexer *Lexer) ExtractTokens() []token.Token {
-	if len(lexer.twoSymbolBuffer) == 1 {
-		lexer.twoSymbolBuffer += " "
-		err := lexer.tryOneSymbolToken()
-		if err != nil {
-			lexer.buffer += lexer.twoSymbolBuffer
-			lexer.twoSymbolBuffer = ""
-			lexer.resetBuffer()
+func (lexer *Lexer) GetToken() (token.Token, error) {
+	// if no char from previous step, read it
+	if lexer.currentChar == 0 {
+		ch, err := (*lexer.codeSource).GetChar()
+		lexer.currentChar = ch
+		if err == ErrEOF {
+			return token.Token{token.END_OF_PROGRAM, ""}, nil
+		} else if err != nil {
+			return err
 		}
 	}
-	tokens := lexer.tokens
-	lexer.tokens = lexer.tokens[:0]
-	return tokens
+
+	// if not read, then end of file/line
+	if lexer.currentChar == 0 {
+	}
+
+	if isLetterOrUnderscore(lexer.currentChar) {
+		return lexer.getIdentifierOrKeyword()
+	}
+
+	if isNumber(lexer.currentChar) {
+		return lexer.getIntOrFloatLiteral()
+	}
+
+	if lexer.currentChar == '"' {
+		return lexer.getStringLiteral()
+	}
+
+	if lexer.currentChar == '\'' {
+		return lexer.getCharLiteral()
+	}
+
+	return lexer.getOneOrTwoSymbolOperator() // try to get operator, return illegal otherwise
 }
